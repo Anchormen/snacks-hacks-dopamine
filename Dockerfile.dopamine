@@ -1,0 +1,13 @@
+FROM python:3.6
+# docker build -t dopamine -f Dockerfile.dopamine .
+
+# Installing packages
+RUN pip install tensorflow
+RUN pip install atari-py
+RUN pip install mock
+RUN pip install dopamine-rl
+RUN pip install gym
+
+# Git repo
+RUN cd && git clone https://github.com/google/dopamine.git
+# docker run --rm -it dopamine bash
