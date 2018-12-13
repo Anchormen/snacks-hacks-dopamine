@@ -8,7 +8,7 @@ slim = tf.contrib.slim
 class CarPoleAgent(DQNAgent):
 
     def __init__(self, session):
-        super().__init__(sess=session, num_actions=2, observation_shape=(4,1,1))
+        super().__init__(sess=session, num_actions=2, observation_shape=(4,1,1), min_replay_history=10)
 
     def _network_template(self, state):
         """Builds the convolutional network used to compute the agent's Q-values.
@@ -21,8 +21,10 @@ class CarPoleAgent(DQNAgent):
         """
         net = tf.cast(state, tf.float32)
         net = slim.flatten(net)
-        net = slim.fully_connected(net, 2)
-        q_values = slim.fully_connected(net, self.num_actions, activation_fn=tf.log_sigmoid)
+        net = slim.fully_connected(net, 16)
+        net = slim.fully_connected(net, 16)
+        net = slim.fully_connected(net, 16)
+        q_values = slim.fully_connected(net, self.num_actions, activation_fn=None)
         return self._get_network_type()(q_values)
 
 
@@ -33,18 +35,22 @@ def expand_observation(observation):
     return multi_dim_observation
 
 
-with tf.Session() as session:
 
+with tf.Session() as session:
     env = gym.make('CartPole-v0')
     num_actions = 2 # left or right
     agent = CarPoleAgent(session)
+    session.run(tf.global_variables_initializer())                            # Initializes the variables
 
-    for i_episode in range(20):
+    NUM_SCORES = 10
+    scores = np.zeros(NUM_SCORES)
+    for episode in range(2000):
         observation = env.reset()
         observation = expand_observation(observation)
         action = agent.begin_episode(observation)
-        for t in range(1000):
-            env.render()
+        t = 0
+        for t in range(200):
+            # env.render()
             observation, reward, done, info = env.step(action)
             observation = expand_observation(observation)
             action = agent.step(reward, observation)
@@ -52,3 +58,12 @@ with tf.Session() as session:
             if done:
                 print("Episode finished after {} timesteps".format(t+1))
                 break
+
+            if t is 100:
+                print("MADE IT!!!")
+
+
+        scores[episode % NUM_SCORES] = t
+        print("Moving average: " + str(np.sum(scores) / NUM_SCORES))
+
+    env.close()
